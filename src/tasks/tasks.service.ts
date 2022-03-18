@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { User } from 'src/auth/user.entity';
 import { DeleteResult } from 'typeorm';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
@@ -14,8 +15,8 @@ export class TasksService {
     private tasksRepository: TasksRepository,
   ) {}
 
-  async getTaskById(id: string): Promise<Task> {
-    const found = await this.tasksRepository.findOne(id);
+  async getTaskById(id: string, user: User): Promise<Task> {
+    const found = await this.tasksRepository.findOne({ id, user });
 
     if (!found) {
       throw new NotFoundException('Task not found');
@@ -24,16 +25,20 @@ export class TasksService {
     return found;
   }
 
-  getTasks(filterDto: GetTasksFilterDto): Promise<Task[]> {
-    return this.tasksRepository.getTasks(filterDto);
+  getTasks(filterDto: GetTasksFilterDto, user: User): Promise<Task[]> {
+    return this.tasksRepository.getTasks(filterDto, user);
   }
 
-  createTask(createTaskDto: CreateTaskDto): Promise<Task> {
-    return this.tasksRepository.createTask(createTaskDto);
+  createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
+    return this.tasksRepository.createTask(createTaskDto, user);
   }
 
-  async patchTaskStatus(status: TaskStatus, id: string): Promise<Task> {
-    const task: Task = await this.getTaskById(id);
+  async patchTaskStatus(
+    status: TaskStatus,
+    id: string,
+    user: User,
+  ): Promise<Task> {
+    const task: Task = await this.getTaskById(id, user);
 
     task.status = status;
     await this.tasksRepository.save(task);
@@ -41,8 +46,11 @@ export class TasksService {
     return task;
   }
 
-  async deleteTaskById(id: string): Promise<void> {
-    const result: DeleteResult = await this.tasksRepository.delete(id);
+  async deleteTaskById(id: string, user: User): Promise<void> {
+    const result: DeleteResult = await this.tasksRepository.delete({
+      id,
+      user,
+    });
 
     if (result.affected === 0) {
       throw new NotFoundException('Task not found');
